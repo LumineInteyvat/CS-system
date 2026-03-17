@@ -1,6 +1,7 @@
 #include "nemu.h"
 #include <stdlib.h>
 #include <time.h>
+#include <stdio.h>
 
 CPU_state cpu;
 
@@ -40,4 +41,16 @@ void reg_test() {
   assert(sample[R_EDI] == cpu.edi);
 
   assert(eip_sample == cpu.eip);
+}
+
+void isa_reg_display() {
+  printf("eax\t0x%08x\t%u\n", cpu.eax, cpu.eax);
+  printf("ecx\t0x%08x\t%u\n", cpu.ecx, cpu.ecx);
+  printf("edx\t0x%08x\t%u\n", cpu.edx, cpu.edx);
+  printf("ebx\t0x%08x\t%u\n", cpu.ebx, cpu.ebx);
+  printf("esp\t0x%08x\t%u\n", cpu.esp, cpu.esp);
+  printf("ebp\t0x%08x\t%u\n", cpu.ebp, cpu.ebp);
+  printf("esi\t0x%08x\t%u\n", cpu.esi, cpu.esi);
+  printf("edi\t0x%08x\t%u\n", cpu.edi, cpu.edi);
+  printf("eip\t0x%08x\t%u\n", cpu.eip, cpu.eip);
 }

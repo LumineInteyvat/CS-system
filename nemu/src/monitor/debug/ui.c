@@ -2,13 +2,13 @@
 #include "monitor/expr.h"
 #include "monitor/watchpoint.h"
 #include "nemu.h"
+#include "cpu/reg.h"
 
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
 void cpu_exec(uint64_t);
-void isa_reg_display(); // append
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char *rl_gets()
