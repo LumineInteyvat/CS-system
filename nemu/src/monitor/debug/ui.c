@@ -78,12 +78,7 @@ static int cmd_x(char *args) {
 
   sscanf(args, "%d %s", &n, e);
 
-  bool success = false;
-  uint32_t addr = expr(e, &success);
-  if (!success) {
-    printf("Bad expression\n");
-    return 0;
-  }
+  uint32_t addr = strtoul(e, NULL, 16);
 
   for (int i = 0; i < n; i++) {
     printf("0x%x: 0x%x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
