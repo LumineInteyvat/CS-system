@@ -11,10 +11,11 @@ static WP *head, *free_;
 
 void init_wp_pool() {
   int i;
-  for (i = 0; i < NR_WP; i ++) {
+  for (i = 0; i < NR_WP - 1; i ++) {
     wp_pool[i].NO = i;
     wp_pool[i].next = &wp_pool[i + 1];
   }
+  wp_pool[NR_WP - 1].NO = NR_WP - 1;
   wp_pool[NR_WP - 1].next = NULL;
 
   head = NULL;
@@ -27,21 +28,25 @@ WP* new_wp(char *e) {
   WP *wp = free_;
   free_ = free_->next;
 
-  wp->next = head;
-  head = wp;
-
   strncpy(wp->expr, e, sizeof(wp->expr) - 1);
   wp->expr[sizeof(wp->expr) - 1] = '\0';
-
-  printf("DEBUG raw e = [%s]\n", e);
-  printf("DEBUG wp->expr = [%s]\n", wp->expr);
 
   bool success = false;
   wp->old_val = expr(wp->expr, &success);
 
+  printf("DEBUG raw e = [%s]\n", e);
+  printf("DEBUG wp->expr = [%s]\n", wp->expr);
   printf("DEBUG success = %d, val = %u\n", success, wp->old_val);
 
-  assert(success);
+  if (!success) {
+    wp->next = free_;
+    free_ = wp;
+    printf("Bad expression: %s\n", wp->expr);
+    return NULL;
+  }
+
+  wp->next = head;
+  head = wp;
 
   printf("Watchpoint %d: %s = %u (0x%x)\n",
       wp->NO, wp->expr, wp->old_val, wp->old_val);
