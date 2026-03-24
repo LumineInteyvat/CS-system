@@ -193,9 +193,9 @@ static bool check_parentheses(int p, int q)
       return false;
     }
 
-    {
+    if (bal == 0 && i < q) {
       return false;
-    }
+    }   
   }
 
   return bal == 0;
