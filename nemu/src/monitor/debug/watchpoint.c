@@ -34,14 +34,9 @@ WP* new_wp(char *e) {
   bool success = false;
   wp->old_val = expr(wp->expr, &success);
 
-  printf("DEBUG raw e = [%s]\n", e);
-  printf("DEBUG wp->expr = [%s]\n", wp->expr);
-  printf("DEBUG success = %d, val = %u\n", success, wp->old_val);
-
   if (!success) {
     wp->next = free_;
     free_ = wp;
-    printf("Bad expression: %s\n", wp->expr);
     return NULL;
   }
 
