@@ -113,8 +113,6 @@ static bool make_token(char *e)
 
         position += substr_len;
 
-        strncpy(tokens[nr_token].str, substr_start, substr_len);
-        tokens[nr_token].str[substr_len] = '\0';
 
         if (rules[i].token_type == TK_NOTYPE)
         {
@@ -266,7 +264,7 @@ static int dominant_operator(int p, int q) {
     }
     if (bal != 0) continue;
 
-    if (!is_binary_op(type) && type != TK_NEG && type != TK_DEREF) {
+    if (!is_binary_op(type)) {
       continue;
     }
 
@@ -323,26 +321,23 @@ static uint32_t eval(int p, int q, bool *success)
     return eval(p + 1, q - 1, success);
   }
 
-  int op = dominant_operator(p, q);
-  if (op < 0)
-  {
-    *success = false;
-    return 0;
-  }
-
-  if (tokens[op].type == TK_NEG)
-  {
-    uint32_t val = eval(op + 1, q, success);
+  if (tokens[p].type == TK_NEG) {
+    uint32_t val = eval(p + 1, q, success);
+    if (!*success) return 0;
     return -val;
-  }
+    }
 
-  if (tokens[op].type == TK_DEREF)
-  {
-    uint32_t addr = eval(op + 1, q, success);
-    if (!*success)
-      return 0;
-    return vaddr_read(addr, 4);
-  }
+    if (tokens[p].type == TK_DEREF) {
+        uint32_t addr = eval(p + 1, q, success);
+    if (!*success) return 0;
+        return vaddr_read(addr, 4);
+    }
+
+    int op = dominant_operator(p, q);
+    if (op < 0) {
+        *success = false;
+        return 0;
+    }
 
   uint32_t val1 = eval(p, op - 1, success);
   if (!*success)
