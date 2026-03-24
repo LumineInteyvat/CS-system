@@ -33,8 +33,14 @@ WP* new_wp(char *e) {
   strncpy(wp->expr, e, sizeof(wp->expr) - 1);
   wp->expr[sizeof(wp->expr) - 1] = '\0';
 
+  printf("DEBUG raw e = [%s]\n", e);
+  printf("DEBUG wp->expr = [%s]\n", wp->expr);
+
   bool success = false;
   wp->old_val = expr(wp->expr, &success);
+
+  printf("DEBUG success = %d, val = %u\n", success, wp->old_val);
+
   assert(success);
 
   printf("Watchpoint %d: %s = %u (0x%x)\n",
