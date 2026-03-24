@@ -321,23 +321,24 @@ static uint32_t eval(int p, int q, bool *success)
     return eval(p + 1, q - 1, success);
   }
 
-  if (tokens[p].type == TK_NEG) {
-    uint32_t val = eval(p + 1, q, success);
-    if (!*success) return 0;
-    return -val;
+  int op = dominant_operator(p, q);
+
+  if (op < 0) {
+    if (tokens[p].type == TK_NEG) {
+      uint32_t val = eval(p + 1, q, success);
+      if (!*success) return 0;
+      return -val;
     }
 
     if (tokens[p].type == TK_DEREF) {
-        uint32_t addr = eval(p + 1, q, success);
-    if (!*success) return 0;
-        return vaddr_read(addr, 4);
+      uint32_t addr = eval(p + 1, q, success);
+      if (!*success) return 0;
+      return vaddr_read(addr, 4);
     }
 
-    int op = dominant_operator(p, q);
-    if (op < 0) {
-        *success = false;
-        return 0;
-    }
+    *success = false;
+    return 0;
+  }
 
   uint32_t val1 = eval(p, op - 1, success);
   if (!*success)
