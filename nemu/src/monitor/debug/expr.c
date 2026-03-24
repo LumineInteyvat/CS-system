@@ -13,10 +13,15 @@ enum
 
   TK_EQ,
   TK_NEQ,
+  TK_LT,
+  TK_LE,
+  TK_GT,
+  TK_GE,
   TK_AND,
+  TK_OR,
 
-  TK_NEG,  // unary minus
-  TK_DEREF // unary *
+  TK_NEG,
+  TK_DEREF
 };
 
 static struct rule
@@ -24,14 +29,19 @@ static struct rule
   char *regex;
   int token_type;
 } rules[] = {
-    {" +", TK_NOTYPE}, // spaces
+    {" +", TK_NOTYPE},
     {"0[xX][0-9a-fA-F]+", TK_HEX},
     {"[0-9]+", TK_DEC},
     {"\\$[a-zA-Z][a-zA-Z0-9]*", TK_REG},
 
     {"==", TK_EQ},
     {"!=", TK_NEQ},
+    {"<=", TK_LE},
+    {">=", TK_GE},
+    {"<", TK_LT},
+    {">", TK_GT},
     {"&&", TK_AND},
+    {"\\|\\|", TK_OR},
 
     {"\\+", '+'},
     {"-", '-'},
@@ -73,7 +83,9 @@ static int nr_token;
 static bool is_binary_op(int type)
 {
   return type == '+' || type == '-' || type == '*' || type == '/' ||
-         type == TK_EQ || type == TK_NEQ || type == TK_AND;
+         type == TK_EQ || type == TK_NEQ ||
+         type == TK_LT || type == TK_LE || type == TK_GT || type == TK_GE ||
+         type == TK_AND || type == TK_OR;
 }
 
 static bool is_value_type(int type)
@@ -101,6 +113,9 @@ static bool make_token(char *e)
 
         position += substr_len;
 
+        strncpy(tokens[nr_token].str, substr_start, substr_len);
+        tokens[nr_token].str[substr_len] = '\0';
+
         if (rules[i].token_type == TK_NOTYPE)
         {
           break;
@@ -116,30 +131,34 @@ static bool make_token(char *e)
           Assert(0, "token too long");
         }
 
-        switch (rules[i].token_type)
-        {
-        case TK_DEC:
-        case TK_HEX:
-        case TK_REG:
-          strncpy(tokens[nr_token].str, substr_start, substr_len);
-          tokens[nr_token].str[substr_len] = '\0';
-          nr_token++;
-          break;
+        switch (rules[i].token_type) {
+  case TK_DEC:
+  case TK_HEX:
+  case TK_REG:
+    strncpy(tokens[nr_token].str, substr_start, substr_len);
+    tokens[nr_token].str[substr_len] = '\0';
+    nr_token++;
+    break;
 
-        case '+':
-        case '-':
-        case '*':
-        case '/':
-        case '(':
-        case ')':
-        case TK_EQ:
-        case TK_NEQ:
-        case TK_AND:
-          nr_token++;
-          break;
+  case '+':
+  case '-':
+  case '*':
+  case '/':
+  case '(':
+  case ')':
+  case TK_EQ:
+  case TK_NEQ:
+  case TK_LT:
+  case TK_LE:
+  case TK_GT:
+  case TK_GE:
+  case TK_AND:
+  case TK_OR:
+    nr_token++;
+    break;
 
-        default:
-          Assert(0, "unknown token type %d", rules[i].token_type);
+  default:
+    assert(0);
         }
 
         break;
@@ -176,8 +195,6 @@ static bool check_parentheses(int p, int q)
       return false;
     }
 
-    // 说明最外层括号在 q 之前已经闭合，不是整个表达式被一对括号包围
-    if (bal == 0 && i < q)
     {
       return false;
     }
@@ -205,58 +222,56 @@ static int precedence(int type)
 {
   switch (type)
   {
-  case TK_AND:
+  case TK_OR:
     return 1;
+  case TK_AND:
+    return 2;
   case TK_EQ:
   case TK_NEQ:
-    return 2;
+    return 3;
+  case TK_LT:
+  case TK_LE:
+  case TK_GT:
+  case TK_GE:
+    return 4;
   case '+':
   case '-':
-    return 3;
+    return 5;
   case '*':
   case '/':
-    return 4;
+    return 6;
   case TK_NEG:
   case TK_DEREF:
-    return 5;
+    return 7;
   default:
     return 100;
   }
 }
 
-static int dominant_operator(int p, int q)
-{
+static int dominant_operator(int p, int q) {
   int op = -1;
   int min_pri = 100;
   int bal = 0;
 
-  for (int i = p; i <= q; i++)
-  {
+  for (int i = p; i <= q; i++) {
     int type = tokens[i].type;
 
-    if (type == '(')
-    {
+    if (type == '(') {
       bal++;
       continue;
     }
-    if (type == ')')
-    {
+    if (type == ')') {
       bal--;
       continue;
     }
-    if (bal != 0)
-      continue;
+    if (bal != 0) continue;
 
-    if (!is_binary_op(type) && type != TK_NEG && type != TK_DEREF)
-    {
+    if (!is_binary_op(type) && type != TK_NEG && type != TK_DEREF) {
       continue;
     }
 
     int pri = precedence(type);
-
-    // 对同优先级，取最右边那个，符合左结合运算的“最后结合”
-    if (pri <= min_pri)
-    {
+    if (pri <= min_pri) {
       min_pri = pri;
       op = i;
     }
@@ -286,7 +301,6 @@ static uint32_t eval(int p, int q, bool *success)
     case TK_REG:
     {
       bool ok = true;
-      // 去掉前面的 '$'
       uint32_t val = isa_reg_str2val(tokens[p].str + 1, &ok);
       *success = ok;
       return val;
@@ -352,12 +366,25 @@ static uint32_t eval(int p, int q, bool *success)
       return 0;
     }
     return val1 / val2;
+
   case TK_EQ:
     return val1 == val2;
   case TK_NEQ:
     return val1 != val2;
+  case TK_LT:
+    return val1 < val2;
+  case TK_LE:
+    return val1 <= val2;
+  case TK_GT:
+    return val1 > val2;
+  case TK_GE:
+    return val1 >= val2;
+
   case TK_AND:
     return val1 && val2;
+  case TK_OR:
+    return val1 || val2;
+
   default:
     *success = false;
     return 0;
@@ -372,7 +399,6 @@ uint32_t expr(char *e, bool *success)
     return 0;
   }
 
-  // 把 '-' 和 '*' 改成单目运算符
   for (int i = 0; i < nr_token; i++)
   {
     if (tokens[i].type == '-')
