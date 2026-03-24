@@ -14,6 +14,7 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
  * For more details about the register encoding scheme, see i386 manual.
  */
 void isa_reg_display();
+uint32_t isa_reg_str2val(const char *s, bool *success);
 
 typedef struct {
   union {

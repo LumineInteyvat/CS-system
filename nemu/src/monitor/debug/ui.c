@@ -87,16 +87,19 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-static int cmd_p(char *args)
-{
-  bool success;
-  uint32_t val = expr(args, &success);
-
-  if (success)
-  {
-    printf("%u\n", val);
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
+    return 0;
   }
 
+  bool success = true;
+  uint32_t val = expr(args, &success);
+  if (success) {
+    printf("%u (0x%x)\n", val, val);
+  } else {
+    printf("Bad expression.\n");
+  }
   return 0;
 }
 

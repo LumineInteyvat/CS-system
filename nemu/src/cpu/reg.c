@@ -54,3 +54,37 @@ void isa_reg_display() {
   printf("edi\t0x%08x\t%u\n", cpu.edi, cpu.edi);
   printf("eip\t0x%08x\t%u\n", cpu.eip, cpu.eip);
 }
+
+uint32_t isa_reg_str2val(const char *s, bool *success) {
+  int i;
+
+  for (i = 0; i < 8; i++) {
+    if (strcmp(s, regsl[i]) == 0) {
+      *success = true;
+      return reg_l(i);
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    if (strcmp(s, regsw[i]) == 0) {
+      *success = true;
+      return reg_w(i);
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    if (strcmp(s, regsb[i]) == 0) {
+      *success = true;
+      return reg_b(i);
+    }
+  }
+
+  if (strcmp(s, "eip") == 0) {
+    *success = true;
+    return cpu.eip;
+  }
+
+  *success = false;
+  return 0;
+}
+
