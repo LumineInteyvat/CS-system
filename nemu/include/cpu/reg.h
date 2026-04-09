@@ -30,6 +30,27 @@ typedef struct {
   };
 
   vaddr_t eip;
+
+// 新增：EFLAGS 寄存器
+  union {
+    uint32_t val; // 允许直接作为一个 32 位整体进行访问
+    struct {
+      uint32_t CF : 1; // Bit 0
+      uint32_t _1 : 1; // Bit 1 (固定为1)
+      uint32_t PF : 1; // Bit 2
+      uint32_t _3 : 1; // Bit 3 (固定为0)
+      uint32_t AF : 1; // Bit 4
+      uint32_t _5 : 1; // Bit 5 (固定为0)
+      uint32_t ZF : 1; // Bit 6
+      uint32_t SF : 1; // Bit 7
+      uint32_t TF : 1; // Bit 8
+      uint32_t IF : 1; // Bit 9
+      uint32_t DF : 1; // Bit 10
+      uint32_t OF : 1; // Bit 11
+      uint32_t _rest: 20; // 其余高位
+    };
+  } eflags;
+
 } CPU_state;
 
 extern CPU_state cpu;

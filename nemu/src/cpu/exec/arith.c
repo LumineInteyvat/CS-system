@@ -1,42 +1,71 @@
 #include "cpu/exec.h"
 
-make_EHelper(add) {
+make_EHelper(add)
+{
   TODO();
 
   print_asm_template2(add);
 }
 
-make_EHelper(sub) {
-  TODO();
+make_EHelper(sub)
+{
+  // 提前保存被减数和减数，因为等下 id_dest->val 会被覆盖
+  rtlreg_t dest_val = id_dest->val;
+  rtlreg_t src_val = id_src->val;
+
+  // 1. 执行减法：dest = dest - src
+  rtl_sub(&id_dest->val, &dest_val, &src_val);
+
+  // 2. 将结果写回
+  operand_write(id_dest, &id_dest->val);
+
+  // 3. 更新基础标志位 (ZF, SF)
+  rtl_update_ZF(&id_dest->val, id_dest->width);
+  rtl_update_SF(&id_dest->val, id_dest->width);
+
+  // 4. 更新借位标志 CF (Carry Flag)
+  // 当无符号被减数 < 无符号减数 时，一定会发生借位
+  cpu.eflags.CF = (dest_val < src_val);
+
+  // 5. 更新溢出标志 OF (Overflow Flag)
+  // 溢出条件：正数减负数得到负数，或者负数减正数得到正数
+  // 通过检查最高位 (符号位) 是否发生异常翻转来判断
+  int msb = (id_dest->width * 8) - 1;
+  cpu.eflags.OF = ((dest_val ^ src_val) & (dest_val ^ id_dest->val)) >> msb & 1;
 
   print_asm_template2(sub);
 }
 
-make_EHelper(cmp) {
+make_EHelper(cmp)
+{
   TODO();
 
   print_asm_template2(cmp);
 }
 
-make_EHelper(inc) {
+make_EHelper(inc)
+{
   TODO();
 
   print_asm_template1(inc);
 }
 
-make_EHelper(dec) {
+make_EHelper(dec)
+{
   TODO();
 
   print_asm_template1(dec);
 }
 
-make_EHelper(neg) {
+make_EHelper(neg)
+{
   TODO();
 
   print_asm_template1(neg);
 }
 
-make_EHelper(adc) {
+make_EHelper(adc)
+{
   rtl_add(&t2, &id_dest->val, &id_src->val);
   rtl_sltu(&t3, &t2, &id_dest->val);
   rtl_get_CF(&t1);
@@ -59,7 +88,8 @@ make_EHelper(adc) {
   print_asm_template2(adc);
 }
 
-make_EHelper(sbb) {
+make_EHelper(sbb)
+{
   rtl_sub(&t2, &id_dest->val, &id_src->val);
   rtl_sltu(&t3, &id_dest->val, &t2);
   rtl_get_CF(&t1);
@@ -81,55 +111,62 @@ make_EHelper(sbb) {
   print_asm_template2(sbb);
 }
 
-make_EHelper(mul) {
+make_EHelper(mul)
+{
   rtl_lr(&t0, R_EAX, id_dest->width);
   rtl_mul(&t0, &t1, &id_dest->val, &t0);
 
-  switch (id_dest->width) {
-    case 1:
-      rtl_sr_w(R_AX, &t1);
-      break;
-    case 2:
-      rtl_sr_w(R_AX, &t1);
-      rtl_shri(&t1, &t1, 16);
-      rtl_sr_w(R_DX, &t1);
-      break;
-    case 4:
-      rtl_sr_l(R_EDX, &t0);
-      rtl_sr_l(R_EAX, &t1);
-      break;
-    default: assert(0);
+  switch (id_dest->width)
+  {
+  case 1:
+    rtl_sr_w(R_AX, &t1);
+    break;
+  case 2:
+    rtl_sr_w(R_AX, &t1);
+    rtl_shri(&t1, &t1, 16);
+    rtl_sr_w(R_DX, &t1);
+    break;
+  case 4:
+    rtl_sr_l(R_EDX, &t0);
+    rtl_sr_l(R_EAX, &t1);
+    break;
+  default:
+    assert(0);
   }
 
   print_asm_template1(mul);
 }
 
 // imul with one operand
-make_EHelper(imul1) {
+make_EHelper(imul1)
+{
   rtl_lr(&t0, R_EAX, id_dest->width);
   rtl_imul(&t0, &t1, &id_dest->val, &t0);
 
-  switch (id_dest->width) {
-    case 1:
-      rtl_sr_w(R_AX, &t1);
-      break;
-    case 2:
-      rtl_sr_w(R_AX, &t1);
-      rtl_shri(&t1, &t1, 16);
-      rtl_sr_w(R_DX, &t1);
-      break;
-    case 4:
-      rtl_sr_l(R_EDX, &t0);
-      rtl_sr_l(R_EAX, &t1);
-      break;
-    default: assert(0);
+  switch (id_dest->width)
+  {
+  case 1:
+    rtl_sr_w(R_AX, &t1);
+    break;
+  case 2:
+    rtl_sr_w(R_AX, &t1);
+    rtl_shri(&t1, &t1, 16);
+    rtl_sr_w(R_DX, &t1);
+    break;
+  case 4:
+    rtl_sr_l(R_EDX, &t0);
+    rtl_sr_l(R_EAX, &t1);
+    break;
+  default:
+    assert(0);
   }
 
   print_asm_template1(imul);
 }
 
 // imul with two operands
-make_EHelper(imul2) {
+make_EHelper(imul2)
+{
   rtl_sext(&id_src->val, &id_src->val, id_src->width);
   rtl_sext(&id_dest->val, &id_dest->val, id_dest->width);
 
@@ -140,7 +177,8 @@ make_EHelper(imul2) {
 }
 
 // imul with three operands
-make_EHelper(imul3) {
+make_EHelper(imul3)
+{
   rtl_sext(&id_src->val, &id_src->val, id_src->width);
   rtl_sext(&id_src2->val, &id_src2->val, id_src->width);
   rtl_sext(&id_dest->val, &id_dest->val, id_dest->width);
@@ -151,71 +189,81 @@ make_EHelper(imul3) {
   print_asm_template3(imul);
 }
 
-make_EHelper(div) {
-  switch (id_dest->width) {
-    case 1:
-      rtl_li(&t1, 0);
-      rtl_lr_w(&t0, R_AX);
-      break;
-    case 2:
-      rtl_lr_w(&t0, R_AX);
-      rtl_lr_w(&t1, R_DX);
-      rtl_shli(&t1, &t1, 16);
-      rtl_or(&t0, &t0, &t1);
-      rtl_li(&t1, 0);
-      break;
-    case 4:
-      rtl_lr_l(&t0, R_EAX);
-      rtl_lr_l(&t1, R_EDX);
-      break;
-    default: assert(0);
+make_EHelper(div)
+{
+  switch (id_dest->width)
+  {
+  case 1:
+    rtl_li(&t1, 0);
+    rtl_lr_w(&t0, R_AX);
+    break;
+  case 2:
+    rtl_lr_w(&t0, R_AX);
+    rtl_lr_w(&t1, R_DX);
+    rtl_shli(&t1, &t1, 16);
+    rtl_or(&t0, &t0, &t1);
+    rtl_li(&t1, 0);
+    break;
+  case 4:
+    rtl_lr_l(&t0, R_EAX);
+    rtl_lr_l(&t1, R_EDX);
+    break;
+  default:
+    assert(0);
   }
 
   rtl_div(&t2, &t3, &t1, &t0, &id_dest->val);
 
   rtl_sr(R_EAX, id_dest->width, &t2);
-  if (id_dest->width == 1) {
+  if (id_dest->width == 1)
+  {
     rtl_sr_b(R_AH, &t3);
   }
-  else {
+  else
+  {
     rtl_sr(R_EDX, id_dest->width, &t3);
   }
 
   print_asm_template1(div);
 }
 
-make_EHelper(idiv) {
+make_EHelper(idiv)
+{
   rtl_sext(&id_dest->val, &id_dest->val, id_dest->width);
 
-  switch (id_dest->width) {
-    case 1:
-      rtl_lr_w(&t0, R_AX);
-      rtl_sext(&t0, &t0, 2);
-      rtl_msb(&t1, &t0, 4);
-      rtl_sub(&t1, &tzero, &t1);
-      break;
-    case 2:
-      rtl_lr_w(&t0, R_AX);
-      rtl_lr_w(&t1, R_DX);
-      rtl_shli(&t1, &t1, 16);
-      rtl_or(&t0, &t0, &t1);
-      rtl_msb(&t1, &t0, 4);
-      rtl_sub(&t1, &tzero, &t1);
-      break;
-    case 4:
-      rtl_lr_l(&t0, R_EAX);
-      rtl_lr_l(&t1, R_EDX);
-      break;
-    default: assert(0);
+  switch (id_dest->width)
+  {
+  case 1:
+    rtl_lr_w(&t0, R_AX);
+    rtl_sext(&t0, &t0, 2);
+    rtl_msb(&t1, &t0, 4);
+    rtl_sub(&t1, &tzero, &t1);
+    break;
+  case 2:
+    rtl_lr_w(&t0, R_AX);
+    rtl_lr_w(&t1, R_DX);
+    rtl_shli(&t1, &t1, 16);
+    rtl_or(&t0, &t0, &t1);
+    rtl_msb(&t1, &t0, 4);
+    rtl_sub(&t1, &tzero, &t1);
+    break;
+  case 4:
+    rtl_lr_l(&t0, R_EAX);
+    rtl_lr_l(&t1, R_EDX);
+    break;
+  default:
+    assert(0);
   }
 
   rtl_idiv(&t2, &t3, &t1, &t0, &id_dest->val);
 
   rtl_sr(R_EAX, id_dest->width, &t2);
-  if (id_dest->width == 1) {
+  if (id_dest->width == 1)
+  {
     rtl_sr_b(R_AH, &t3);
   }
-  else {
+  else
+  {
     rtl_sr(R_EDX, id_dest->width, &t3);
   }
 
