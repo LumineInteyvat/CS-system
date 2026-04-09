@@ -34,9 +34,6 @@ make_EHelper(call)
   // 2. 发生跳转，告诉执行框架我们要改变 EIP
   decoding.is_jmp = 1;
 
-  // 3. 设置跳转的目标地址 (译码阶段已经算好并存在 id_dest->val 中)
-  decoding.jmp_eip = id_dest->val;
-
   print_asm("call %x", decoding.jmp_eip);
 }
 
