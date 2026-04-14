@@ -12,6 +12,7 @@ make_EHelper(adc);
 make_EHelper(cmp);
 make_EHelper(lea);
 make_EHelper(leave);
+make_EHelper(and);
 
 make_EHelper(mov);
 
