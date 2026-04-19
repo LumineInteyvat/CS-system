@@ -1,0 +1,281 @@
+NEMU Project Index
+==================
+
+文件树 (build, include, src)
+================================
+
+.
+├── build/                          # 编译输出目录
+│   ├── nemu                        # 生成的可执行文件
+│   ├── nemu-log.txt                # 执行日志
+│   └── obj/                        # 目标文件和依赖文件
+│       ├── cpu/
+│       │   ├── decode/
+│       │   ├── exec/
+│       │   └── ...
+│       ├── device/
+│       ├── memory/
+│       └── monitor/
+│
+├── include/                        # 头文件目录
+│   ├── common.h                    # 通用类型和宏定义
+│   ├── debug.h                     # 调试相关宏
+│   ├── macro.h                     # 通用宏工具
+│   ├── cpu/
+│   │   ├── decode.h                # 指令解码数据结构和辅助函数
+│   │   ├── exec.h                  # 指令执行辅助宏和函数
+│   │   ├── reg.h                   # 寄存器定义和访问宏
+│   │   └── rtl.h                   # RTL(寄存器传输层)指令定义
+│   ├── device/
+│   │   ├── mmio.h                  # 内存映射I/O接口
+│   │   └── port-io.h               # 端口I/O接口
+│   ├── memory/
+│   │   ├── memory.h                # 内存访问接口
+│   │   └── mmu.h                   # 内存管理单元
+│   └── monitor/
+│       ├── expr.h                  # 表达式求值
+│       ├── monitor.h               # monitor状态定义
+│       └── watchpoint.h            # 监视点
+│
+└── src/                            # 源代码目录
+    ├── main.c                      # 程序入口
+    ├── cpu/                        # CPU模拟核心
+    │   ├── decode/
+    │   │   ├── decode.c            # 指令解码实现
+    │   │   └── modrm.c             # ModR/M和SIB字节解码
+    │   ├── exec/
+    │   │   ├── all-instr.h         # 所有指令声明
+    │   │   ├── arith.c             # 算术指令(add, sub, inc等)
+    │   │   ├── cc.c                # 条件码处理
+    │   │   ├── control.c           # 控制流指令(jmp, call等)
+    │   │   ├── data-mov.c          # 数据传送指令(mov, push, pop等)
+    │   │   ├── exec.c              # 指令执行主循环和opcode表
+    │   │   ├── logic.c             # 逻辑指令(and, or, xor等)
+    │   │   ├── prefix.c            # 指令前缀处理
+    │   │   ├── reg.c               # 寄存器操作指令
+    │   │   ├── special.c           # 特殊指令(nop, nemu_trap等)
+    │   │   └── system.c            # 系统指令
+    │   ├── intr.c                  # 中断和异常处理
+    │   └── reg.c                   # 寄存器功能函数(reg_test等)
+    ├── device/                     # 设备模拟
+    │   ├── device.c                # 设备初始化和事件循环
+    │   ├── io/
+    │   │   ├── mmio.c              # 内存映射I/O实现
+    │   │   └── port-io.c           # 端口I/O实现
+    │   ├── keyboard.c              # 键盘设备(i8042)
+    │   ├── serial.c                # 串口设备
+    │   ├── timer.c                 # 定时器
+    │   └── vga.c                   # VGA显示设备
+    ├── memory/
+    │   └── memory.c                # 物理内存和虚拟内存访问
+    ├── misc/
+    │   └── logo.c                  # NEMU Logo(错误提示用)
+    └── monitor/                    # 调试器monitor
+        ├── cpu-exec.c              # CPU执行循环
+        ├── debug/
+        │   ├── expr.c              # 表达式求值器(支持+,-,*,/,==,!=等)
+        │   ├── ui.c                # 交互式命令行界面
+        │   └── watchpoint.c        # 监视点实现
+        ├── diff-test/              # 差异测试(QEMU对比)
+        │   ├── diff-test.c
+        │   ├── gdb-host.c
+        │   └── protocol.c
+        └── monitor.c               # monitor初始化
+
+文件功能说明
+============
+
+核心文件
+--------
+
+src/main.c
+  程序入口。初始化monitor后进入UI主循环。
+
+src/cpu/exec/exec.c
+  指令执行核心。包含512项的opcode_table，将操作码映射到对应的解码和执行函数。
+  exec_wrapper()是单条指令执行的入口。
+
+include/cpu/rtl.h
+  RTL(Register Transfer Level)抽象层。定义了所有RTL操作(算术、逻辑、内存访问、
+  寄存器访问)，指令通过RTL操作实现。
+
+include/cpu/exec.h
+  定义make_EHelper宏，用于生成指令执行函数exec_<name>。
+  定义instr_fetch()从eip获取指令字节。
+
+include/cpu/decode.h
+  定义Operand(操作数)、DecodeInfo(解码状态)、ModR_M和SIB结构。
+  声明所有解码辅助函数(make_DHelper)。
+
+include/cpu/reg.h
+  定义CPU_state结构(8个通用寄存器+ EIP)，
+  提供reg_l(), reg_w(), reg_b()宏访问不同宽度的寄存器。
+
+CPU相关文件
+-----------
+
+src/cpu/decode/decode.c
+  实现各类操作数解码：立即数(I)、寄存器(r)、内存地址(E)、ModR/M解码等。
+  operand_write()将结果写回目的操作数。
+
+src/cpu/decode/modrm.c
+  实现ModR/M和SIB字节解析。
+  - load_addr(): 解析内存地址(base + index*scale + disp)
+  - read_ModR_M(): 读取ModR/M字节，处理寄存器或内存操作数
+
+src/cpu/intr.c
+  中断和异常处理。raise_intr()触发中断，dev_raise_intr()由设备触发中断。
+
+src/cpu/reg.c
+  寄存器相关功能：reg_test()测试寄存器访问，isa_reg_display()显示寄存器值，
+  isa_reg_str2val()将寄存器名转换为值(用于表达式求值)。
+
+指令实现文件 (src/cpu/exec/)
+-----------------------------
+
+arith.c     - 算术指令: add, sub, cmp, inc, dec, neg, adc, sbb, mul, imul, div, idiv
+data-mov.c  - 数据传送: mov, push, pop, pusha, popa, leave, cltd, cwtl, movsx, movzx, lea
+logic.c     - 逻辑指令: test, and, or, xor, sar, shl, shr, setcc, not
+control.c   - 控制流: jmp, je/jne等条件跳转, call, ret
+cc.c        - 条件码: 根据EFLAGS计算条件是否满足
+special.c   - 特殊指令: nop, inv(无效指令处理), nemu_trap(测试结束)
+reg.c       - 寄存器操作: push/pop寄存器版本
+system.c    - 系统指令
+data-mov.c
+
+内存相关文件
+------------
+
+src/memory/memory.c
+  物理内存实现(PMEM_SIZE=128MB)。
+  paddr_read/write()访问物理内存，vaddr_read/write()访问虚拟内存(目前直通)。
+
+include/memory/memory.h
+  内存访问接口定义。
+
+include/memory/mmu.h
+  内存管理单元定义(分页相关)。
+
+设备相关文件
+------------
+
+src/device/device.c
+  设备管理。当定义HAS_IOE时使用真实设备模拟，定时器触发device_update()，
+  处理键盘输入和屏幕更新。
+
+src/device/io/port-io.c
+  端口映射I/O实现。add_pio_map()注册端口处理器。
+
+src/device/io/mmio.c
+  内存映射I/O实现。add_mmio_map()注册MMIO区域。
+
+src/device/keyboard.c
+  i8042键盘控制器模拟。使用SDL2接收键盘事件，通过队列传递给CPU。
+
+src/device/serial.c
+  串口设备模拟。
+
+src/device/timer.c
+  定时器设备模拟，周期性触发中断。
+
+src/device/vga.c
+  VGA显示设备模拟。
+
+Monitor/Debugger文件
+--------------------
+
+src/monitor/monitor.c
+  monitor初始化：解析参数、初始化日志、测试寄存器、加载镜像、
+  初始化差异测试、初始化设备和表达式解析器。
+
+src/monitor/cpu-exec.c
+  CPU执行循环cpu_exec()。逐条执行指令，检查监视点，在DEBUG模式下更新设备。
+
+src/monitor/debug/ui.c
+  交互式命令行界面。支持的命令：
+  - c: 继续执行
+  - si [n]: 单步执行n条指令
+  - info r: 显示寄存器
+  - info w: 显示监视点
+  - x N EXPR: 检查内存
+  - p EXPR: 打印表达式值
+  - w EXPR: 设置监视点
+  - d N: 删除监视点
+
+src/monitor/debug/expr.c
+  表达式求值器。支持运算符：+ - * / == != < <= > >= && ||
+  支持：十进制数、十六进制数(0x前缀)、寄存器($前缀)、解引用(*)。
+
+src/monitor/debug/watchpoint.c
+  监视点实现。在指令执行前后检查表达式值是否改变。
+
+src/monitor/diff-test/
+  差异测试模块。将NEMU与QEMU执行结果对比，检测实现错误。
+
+头文件
+------
+
+include/common.h
+  基础类型定义：bool, rtlreg_t, paddr_t, vaddr_t, ioaddr_t
+  编译选项：DEBUG(调试), DIFF_TEST(差异测试), HAS_IOE(设备IO)
+
+include/debug.h
+  调试宏：Log(), Log_write(), panic(), Assert()
+
+include/nemu.h
+  主头文件，包含common.h, memory.h, reg.h
+
+编译输出
+--------
+
+build/
+  obj/          - 编译生成的.o和.d文件
+  nemu          - 最终可执行文件
+  nemu-log.txt  - 执行日志(DEBUG模式)
+
+关键数据结构
+============
+
+CPU_state (include/cpu/reg.h)
+  - gpr[8]: 8个通用寄存器(支持32/16/8位访问)
+  - eip: 指令指针
+
+Operand (include/cpu/decode.h)
+  - type: 操作数类型(REG/MEM/IMM)
+  - width: 操作数宽度
+  - reg/addr/imm: 操作数值
+  - val: 当前值
+
+DecodeInfo (include/cpu/decode.h)
+  - opcode: 当前操作码
+  - seq_eip: 顺序执行的下一条指令地址
+  - is_jmp, jmp_eip: 跳转相关信息
+  - src, dest, src2: 源和目的操作数
+
+ModR_M (include/cpu/decode.h)
+  - mod: 寻址模式
+  - reg: 寄存器字段或操作码扩展
+  - R_M: r/m字段
+
+指令实现模式
+============
+
+1. 声明解码辅助函数 (include/cpu/decode.h)
+   make_DHelper(name);
+
+2. 实现解码函数 (src/cpu/decode/decode.c)
+   make_DHelper(name) { ... }
+
+3. 声明执行辅助函数 (src/cpu/exec/all-instr.h)
+   make_EHelper(name);
+
+4. 实现执行函数 (src/cpu/exec/xxx.c)
+   make_EHelper(name) {
+     // 使用RTL操作实现指令
+     operand_write(id_dest, &value);
+     print_asm_template2(name);  // 调试输出
+   }
+
+5. 注册到opcode表 (src/cpu/exec/exec.c)
+   IDEX(decode_name, exec_name)  // 带解码
+   EX(exec_name)                 // 无解码
