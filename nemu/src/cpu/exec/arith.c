@@ -63,21 +63,38 @@ make_EHelper(cmp)
 
 make_EHelper(inc)
 {
-  TODO();
+  rtlreg_t old = id_dest->val;
+  rtlreg_t old_cf = cpu.eflags.CF;
+  rtl_addi(&t2, &id_dest->val, 1);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  cpu.eflags.OF = (old == (0x7fffffff >> ((4 - id_dest->width) << 3)));
+  cpu.eflags.CF = old_cf;
 
   print_asm_template1(inc);
 }
 
 make_EHelper(dec)
 {
-  TODO();
+  rtlreg_t old = id_dest->val;
+  rtlreg_t old_cf = cpu.eflags.CF;
+  rtl_subi(&t2, &id_dest->val, 1);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  cpu.eflags.OF = (old == (1u << (id_dest->width * 8 - 1)));
+  cpu.eflags.CF = old_cf;
 
   print_asm_template1(dec);
 }
 
 make_EHelper(neg)
 {
-  TODO();
+  rtlreg_t old = id_dest->val;
+  rtl_sub(&t2, &tzero, &id_dest->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  cpu.eflags.CF = (old != 0);
+  cpu.eflags.OF = (old == (1u << (id_dest->width * 8 - 1)));
 
   print_asm_template1(neg);
 }
