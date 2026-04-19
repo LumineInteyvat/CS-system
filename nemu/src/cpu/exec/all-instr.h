@@ -14,6 +14,7 @@ make_EHelper(or);
 
 make_EHelper(add);
 make_EHelper(adc);
+make_EHelper(sbb);
 make_EHelper(cmp);
 make_EHelper(lea);
 make_EHelper(leave);
