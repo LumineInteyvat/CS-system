@@ -1,5 +1,9 @@
 #include "cpu/exec.h"
 
+static inline uint32_t width_mask(int width) {
+  return width == 4 ? 0xffffffffu : ((1u << (width * 8)) - 1);
+}
+
 make_EHelper(test)
 {
   rtl_and(&t2, &id_dest->val, &id_src->val);
@@ -64,6 +68,44 @@ make_EHelper(sar)
   // unnecessary to update CF and OF in NEMU
 
   print_asm_template2(sar);
+}
+
+make_EHelper(rol)
+{
+  uint32_t bits = id_dest->width * 8;
+  uint32_t count = id_src->val & 0x1f;
+  uint32_t mask = width_mask(id_dest->width);
+  uint32_t val = id_dest->val & mask;
+  if (bits != 0) {
+    count %= bits;
+  }
+  if (count == 0) {
+    t2 = val;
+  } else {
+    t2 = ((val << count) | (val >> (bits - count))) & mask;
+  }
+  operand_write(id_dest, &t2);
+
+  print_asm_template2(rol);
+}
+
+make_EHelper(ror)
+{
+  uint32_t bits = id_dest->width * 8;
+  uint32_t count = id_src->val & 0x1f;
+  uint32_t mask = width_mask(id_dest->width);
+  uint32_t val = id_dest->val & mask;
+  if (bits != 0) {
+    count %= bits;
+  }
+  if (count == 0) {
+    t2 = val;
+  } else {
+    t2 = ((val >> count) | (val << (bits - count))) & mask;
+  }
+  operand_write(id_dest, &t2);
+
+  print_asm_template2(ror);
 }
 
 make_EHelper(shl)
