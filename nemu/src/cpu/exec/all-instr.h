@@ -2,6 +2,8 @@
 
 make_EHelper(push);
 make_EHelper(pop);
+make_EHelper(pusha);
+make_EHelper(popa);
 make_EHelper(call);
 make_EHelper(call_rm);
 make_EHelper(ret);

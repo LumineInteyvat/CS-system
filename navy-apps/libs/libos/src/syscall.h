@@ -1,6 +1,8 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+_RegSet* do_syscall(_RegSet *r);
+
 enum {
   SYS_none,
   SYS_open,
