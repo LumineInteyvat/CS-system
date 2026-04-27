@@ -45,6 +45,7 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
    * high[31:16]    = OFFSET[31:16]
    */
   vaddr_t target = (high & 0xffff0000) | (low & 0x0000ffff);
+  cpu.cs = (low >> 16) & 0xffff;
 
   /* 6. 设置跳转
    * raise_intr() 是 void，因此直接修改 decoding。

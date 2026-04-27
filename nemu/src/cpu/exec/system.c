@@ -6,28 +6,11 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr);
 
 make_EHelper(lidt)
 {
-  vaddr_t addr;
-
-  if (id_dest->type == OP_TYPE_MEM)
-  {
-    addr = id_dest->addr;
-  }
-  else if (id_dest->type == OP_TYPE_REG)
-  {
-    // 对于 lidt (%reg) 这种形式，如果 decode_op_rm 没有正确给出 addr，
-    // 这里用寄存器内容作为内存地址
-    addr = reg_l(id_dest->reg);
-  }
-  else
-  {
-    panic("invalid operand type for lidt");
-  }
+  Assert(id_dest->type == OP_TYPE_MEM, "lidt expects a memory operand");
+  vaddr_t addr = id_dest->addr;
 
   cpu.idtr.limit = vaddr_read(addr, 2);
   cpu.idtr.base = vaddr_read(addr + 2, 4);
-
-  Log("lidt: type=%d, reg=%d, addr=0x%x, idtr.base=0x%x, idtr.limit=0x%x",
-      id_dest->type, id_dest->reg, addr, cpu.idtr.base, cpu.idtr.limit);
 
   print_asm_template1(lidt);
 }
@@ -51,7 +34,7 @@ make_EHelper(mov_cr2r) {
 make_EHelper(int) {
   raise_intr(id_src->val, decoding.seq_eip);
 
-  print_asm("int %s", id_dest->str);
+  print_asm("int %s", id_src->str);
 
 #ifdef DIFF_TEST
   diff_test_skip_nemu();
