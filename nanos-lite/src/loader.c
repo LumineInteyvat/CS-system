@@ -1,5 +1,8 @@
 #include "common.h"
 
+void ramdisk_read(void *buf, off_t offset, size_t len);
+size_t get_ramdisk_size(void);
+
 #define DEFAULT_ENTRY ((void *)0x4000000)
 
 uintptr_t loader(_Protect *as, const char *filename) {
