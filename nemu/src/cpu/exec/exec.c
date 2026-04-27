@@ -70,13 +70,13 @@ make_group(gp1,
 
     /* 0x0f 0x01*/
     make_group(gp7,
-               EMPTY, EMPTY, EMPTY, EMPTY,
+               EMPTY, EMPTY, EMPTY, EX(lidt),
                EMPTY, EMPTY, EMPTY, EMPTY)
 
     /* TODO: Add more instructions!!! */
 
     opcode_entry opcode_table[512] = {
-        /* 0x00 */ IDEXW(G2E, add, 1), IDEX(G2E, add), IDEXW(E2G, add, 1), IDEX(E2G, add),
+        /* 0x00 */ IDEXW(G2E, add, 1), IDEX(gp7_E, gp7), IDEXW(E2G, add, 1), IDEX(E2G, add),
         /* 0x04 */ IDEXW(I2a, add, 1), IDEX(I2a, add), EMPTY, EMPTY,
         /* 0x08 */ IDEXW(G2E, or, 1), IDEX(G2E, or), IDEXW(E2G, or, 1), IDEX(E2G, or),
         /* 0x0c */ IDEXW(I2a, or, 1), IDEX(I2a, or), EMPTY, EX(2byte_esc),
@@ -127,7 +127,7 @@ make_group(gp1,
         /* 0xc0 */ IDEXW(gp2_Ib2E, gp2, 1), IDEX(gp2_Ib2E, gp2), EMPTY, EX(ret),
         /* 0xc4 */ EMPTY, EMPTY, IDEXW(mov_I2E, mov, 1), IDEX(mov_I2E, mov),
         /* 0xc8 */ EMPTY, EX(leave), EMPTY, EMPTY,
-        /* 0xcc */ EMPTY, EMPTY, EMPTY, EMPTY,
+        /* 0xcc */ EMPTY, IDEXW(I, int, 1), EMPTY, EX(iret),
         /* 0xd0 */ IDEXW(gp2_1_E, gp2, 1), IDEX(gp2_1_E, gp2), IDEXW(gp2_cl2E, gp2, 1), IDEX(gp2_cl2E, gp2),
         /* 0xd4 */ EMPTY, EMPTY, EX(nemu_trap), EMPTY,
         /* 0xd8 */ EMPTY, EMPTY, EMPTY, EMPTY,

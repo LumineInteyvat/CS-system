@@ -2,9 +2,13 @@
 
 void diff_test_skip_qemu();
 void diff_test_skip_nemu();
+void raise_intr(uint8_t NO, vaddr_t ret_addr);
 
 make_EHelper(lidt) {
-  TODO();
+  vaddr_t addr = id_dest->addr;
+
+  cpu.idtr.limit = vaddr_read(addr, 2);
+  cpu.idtr.base = vaddr_read(addr + 2, 4);
 
   print_asm_template1(lidt);
 }
@@ -26,7 +30,7 @@ make_EHelper(mov_cr2r) {
 }
 
 make_EHelper(int) {
-  TODO();
+  raise_intr(id_src->val, decoding.seq_eip);
 
   print_asm("int %s", id_dest->str);
 
@@ -36,7 +40,22 @@ make_EHelper(int) {
 }
 
 make_EHelper(iret) {
-  TODO();
+  // 因此 iret 弹栈顺序是：
+  // pop EIP
+  // pop CS
+  // pop EFLAGS
+
+  vaddr_t ret_eip = vaddr_read(cpu.esp, 4);
+  cpu.esp += 4;
+
+  cpu.cs = vaddr_read(cpu.esp, 4) & 0xffff;
+  cpu.esp += 4;
+
+  cpu.eflags.val = vaddr_read(cpu.esp, 4);
+  cpu.esp += 4;
+
+  decoding.is_jmp = 1;
+  decoding.jmp_eip = ret_eip;
 
   print_asm("iret");
 }
