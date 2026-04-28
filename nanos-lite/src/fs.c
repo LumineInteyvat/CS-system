@@ -2,6 +2,9 @@
 
 void ramdisk_read(void *buf, off_t offset, size_t len);
 void ramdisk_write(const void *buf, off_t offset, size_t len);
+size_t events_read(void *buf, size_t len);
+size_t dispinfo_read(void *buf, off_t offset, size_t len);
+size_t fb_write(const void *buf, off_t offset, size_t len);
 
 typedef struct {
   char *name;
@@ -26,7 +29,7 @@ static Finfo file_table[] __attribute__((used)) = {
 #define NR_FILES (sizeof(file_table) / sizeof(file_table[0]))
 
 void init_fs() {
-  // TODO: initialize the size of /dev/fb
+  file_table[FD_FB].size = _screen.width * _screen.height * sizeof(uint32_t);
 }
 
 int fs_open(const char *pathname, int flags, int mode) {
@@ -44,15 +47,28 @@ int fs_open(const char *pathname, int flags, int mode) {
 size_t fs_read(int fd, void *buf, size_t len) {
   assert(fd >= 0 && fd < NR_FILES);
 
-  if (fd < FD_NORMAL) {
+  if (fd == FD_STDIN) {
+    return 0;
+  }
+  if (fd == FD_EVENTS) {
+    return events_read(buf, len);
+  }
+  if (fd != FD_DISPINFO && fd < FD_NORMAL) {
     return 0;
   }
 
   Finfo *file = &file_table[fd];
   size_t remain = file->size - file->open_offset;
-  size_t read_len = len < remain ? len : remain;
+  size_t read_len;
 
-  ramdisk_read(buf, file->disk_offset + file->open_offset, read_len);
+  if (fd == FD_DISPINFO) {
+    read_len = dispinfo_read(buf, file->open_offset, len);
+  }
+  else {
+    read_len = len < remain ? len : remain;
+    ramdisk_read(buf, file->disk_offset + file->open_offset, read_len);
+  }
+
   file->open_offset += read_len;
   return read_len;
 }
@@ -66,6 +82,13 @@ size_t fs_write(int fd, const void *buf, size_t len) {
       _putc(str[i]);
     }
     return len;
+  }
+
+  if (fd == FD_FB) {
+    Finfo *file = &file_table[fd];
+    size_t write_len = fb_write(buf, file->open_offset, len);
+    file->open_offset += write_len;
+    return write_len;
   }
 
   if (fd < FD_NORMAL) {
