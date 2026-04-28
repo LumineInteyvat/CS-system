@@ -5,7 +5,7 @@
 
 uintptr_t loader(_Protect *as, const char *filename) {
   if (filename == NULL) {
-    filename = "/bin/hello";
+    filename = "/bin/pal";
   }
 
   int fd = fs_open(filename, 0, 0);
