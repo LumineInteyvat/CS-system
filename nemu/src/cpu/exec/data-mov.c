@@ -6,6 +6,41 @@ make_EHelper(mov)
   print_asm_template2(mov);
 }
 
+make_EHelper(movs)
+{
+  t0 = vaddr_read(cpu.esi, decoding.is_operand_size_16 ? 2 : 4);
+  vaddr_write(cpu.edi, decoding.is_operand_size_16 ? 2 : 4, t0);
+
+  int step = decoding.is_operand_size_16 ? 2 : 4;
+  if (cpu.eflags.DF) {
+    cpu.esi -= step;
+    cpu.edi -= step;
+  }
+  else {
+    cpu.esi += step;
+    cpu.edi += step;
+  }
+
+  print_asm("movs%c", suffix_char(decoding.is_operand_size_16 ? 2 : 4));
+}
+
+make_EHelper(movsb)
+{
+  t0 = vaddr_read(cpu.esi, 1);
+  vaddr_write(cpu.edi, 1, t0);
+
+  if (cpu.eflags.DF) {
+    cpu.esi --;
+    cpu.edi --;
+  }
+  else {
+    cpu.esi ++;
+    cpu.edi ++;
+  }
+
+  print_asm("movsb");
+}
+
 make_EHelper(push)
 {
   // 将源操作数压栈

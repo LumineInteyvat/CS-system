@@ -44,6 +44,8 @@ make_EHelper(setcc);
 make_EHelper(bsr);
 
 make_EHelper(mov);
+make_EHelper(movs);
+make_EHelper(movsb);
 
 make_EHelper(operand_size);
 
