@@ -1,9 +1,13 @@
 #include "fs.h"
 
+void ramdisk_read(void *buf, off_t offset, size_t len);
+void ramdisk_write(const void *buf, off_t offset, size_t len);
+
 typedef struct {
   char *name;
   size_t size;
   off_t disk_offset;
+  off_t open_offset;
 } Finfo;
 
 enum {FD_STDIN, FD_STDOUT, FD_STDERR, FD_FB, FD_EVENTS, FD_DISPINFO, FD_NORMAL};
@@ -23,4 +27,84 @@ static Finfo file_table[] __attribute__((used)) = {
 
 void init_fs() {
   // TODO: initialize the size of /dev/fb
+}
+
+int fs_open(const char *pathname, int flags, int mode) {
+  for (int i = 0; i < NR_FILES; i ++) {
+    if (strcmp(pathname, file_table[i].name) == 0) {
+      file_table[i].open_offset = 0;
+      return i;
+    }
+  }
+
+  assert(0);
+  return -1;
+}
+
+size_t fs_read(int fd, void *buf, size_t len) {
+  assert(fd >= 0 && fd < NR_FILES);
+
+  if (fd < FD_NORMAL) {
+    return 0;
+  }
+
+  Finfo *file = &file_table[fd];
+  size_t remain = file->size - file->open_offset;
+  size_t read_len = len < remain ? len : remain;
+
+  ramdisk_read(buf, file->disk_offset + file->open_offset, read_len);
+  file->open_offset += read_len;
+  return read_len;
+}
+
+size_t fs_write(int fd, const void *buf, size_t len) {
+  assert(fd >= 0 && fd < NR_FILES);
+
+  if (fd == FD_STDOUT || fd == FD_STDERR) {
+    const char *str = buf;
+    for (size_t i = 0; i < len; i ++) {
+      _putc(str[i]);
+    }
+    return len;
+  }
+
+  if (fd < FD_NORMAL) {
+    return 0;
+  }
+
+  Finfo *file = &file_table[fd];
+  size_t remain = file->size - file->open_offset;
+  size_t write_len = len < remain ? len : remain;
+
+  ramdisk_write(buf, file->disk_offset + file->open_offset, write_len);
+  file->open_offset += write_len;
+  return write_len;
+}
+
+off_t fs_lseek(int fd, off_t offset, int whence) {
+  assert(fd >= 0 && fd < NR_FILES);
+
+  Finfo *file = &file_table[fd];
+  off_t new_offset = 0;
+
+  switch (whence) {
+    case SEEK_SET: new_offset = offset; break;
+    case SEEK_CUR: new_offset = file->open_offset + offset; break;
+    case SEEK_END: new_offset = file->size + offset; break;
+    default: assert(0);
+  }
+
+  assert(new_offset >= 0 && new_offset <= file->size);
+  file->open_offset = new_offset;
+  return new_offset;
+}
+
+int fs_close(int fd) {
+  assert(fd >= 0 && fd < NR_FILES);
+  return 0;
+}
+
+size_t fs_filesz(int fd) {
+  assert(fd >= 0 && fd < NR_FILES);
+  return file_table[fd].size;
 }
