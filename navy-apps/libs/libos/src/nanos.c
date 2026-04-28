@@ -26,10 +26,26 @@ int _open(const char *path, int flags, mode_t mode) {
 }
 
 int _write(int fd, void *buf, size_t count){
-  _exit(SYS_write);
+  return _syscall_(SYS_write, fd, (uintptr_t)buf, count);
 }
 
 void *_sbrk(intptr_t increment){
+  extern char _end;
+  static uintptr_t program_break = 0;
+
+  if (program_break == 0) {
+    program_break = (uintptr_t)&_end;
+  }
+
+  uintptr_t old_brk = program_break;
+  uintptr_t new_brk = program_break + increment;
+  int ret = _syscall_(SYS_brk, new_brk, 0, 0);
+
+  if (ret == 0) {
+    program_break = new_brk;
+    return (void *)old_brk;
+  }
+
   return (void *)-1;
 }
 
