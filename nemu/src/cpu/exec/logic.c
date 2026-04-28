@@ -139,6 +139,28 @@ make_EHelper(setcc)
   print_asm("set%s %s", get_cc_name(subcode), id_dest->str);
 }
 
+make_EHelper(bsr)
+{
+  uint32_t bits = id_src->width * 8;
+  uint32_t val = id_src->val & width_mask(id_src->width);
+
+  if (val == 0) {
+    t0 = 1;
+    rtl_set_ZF(&t0);
+  }
+  else {
+    t0 = 0;
+    rtl_set_ZF(&t0);
+    t2 = bits - 1;
+    while (((val >> t2) & 1) == 0) {
+      t2 --;
+    }
+    operand_write(id_dest, &t2);
+  }
+
+  print_asm_template2(bsr);
+}
+
 make_EHelper(not)
 {
   rtl_mv(&t2, &id_dest->val);
